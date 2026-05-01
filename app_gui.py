@@ -14,7 +14,6 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 import unicodedata
-import time
 import os
 import subprocess
 import psutil
@@ -66,7 +65,6 @@ def abrir_chrome_debug():
         return False
 
 def iniciar_lancamento(driver, df, log_callback):
-    # Seleciona aba correta
     for handle in driver.window_handles:
         driver.switch_to.window(handle)
         if "Lançamento das Avaliações" in driver.title:
@@ -76,38 +74,38 @@ def iniciar_lancamento(driver, df, log_callback):
         log_callback("❌ Aba 'Lançamento das Avaliações' não encontrada.")
         messagebox.showinfo("Aviso", "Acesse a aba manualmente e clique em OK para continuar.")
 
-    # Loop de preenchimento
-    for index, row in df.iterrows():
-        try:
-            nome_original = row["Nome do Aluno"]
-            nome = remover_acentos(nome_original)
-            nota = str(round(row["Nota (%)"], 1)).replace(".", ",")
+    for _, row in df.iterrows():
+        nome_original = row["Nome do Aluno"]
+        nome = remover_acentos(nome_original)
+        nota = str(round(row["Nota (%)"], 1)).replace(".", ",")
 
+        try:
             campo_busca = WebDriverWait(driver, 5).until(
-                EC.visibility_of_element_located((By.CSS_SELECTOR, "input.dt-input"))
+                EC.element_to_be_clickable((By.CSS_SELECTOR, "input.dt-input"))
             )
             campo_busca.clear()
             campo_busca.send_keys(nome)
-            time.sleep(0.3)
 
             log_callback(f"🔍 Buscando: {nome} → Nota: {nota}")
 
-            campo_nota = WebDriverWait(driver, 2).until(
-                EC.presence_of_element_located((By.NAME, "n.NotaAtribuida"))
+            # Aguarda o campo de nota ficar visível após o DataTable filtrar
+            campo_nota = WebDriverWait(driver, 3).until(
+                EC.visibility_of_element_located((By.NAME, "n.NotaAtribuida"))
             )
-            campo_nota.clear()
+            driver.execute_script("arguments[0].value = ''", campo_nota)
             campo_nota.send_keys(nota)
             log_callback("✅ Nota preenchida.")
+
         except Exception:
             log_callback(f"⚠️ Aluno '{nome_original}' não encontrado ou nota não lançada.")
-        time.sleep(0.5)
 
-    # Final: limpa campo de busca, ativa foco e seleciona 100 resultados por página
     try:
-        campo_busca = driver.find_element(By.CSS_SELECTOR, "input.dt-input")
+        campo_busca = WebDriverWait(driver, 3).until(
+            EC.element_to_be_clickable((By.CSS_SELECTOR, "input.dt-input"))
+        )
         campo_busca.clear()
-        campo_busca.click()  # força foco para garantir que a tabela recarregue
-        log_callback("🧹 Campo de busca limpo e ativado.")
+        campo_busca.click()
+        log_callback("🧹 Campo de busca limpo.")
 
         seletor = WebDriverWait(driver, 3).until(
             EC.element_to_be_clickable((By.NAME, "tableDiarioClasse_length"))
