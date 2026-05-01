@@ -27,9 +27,30 @@ def iniciar_chrome_com_perfil():
     options.add_experimental_option("debuggerAddress", "127.0.0.1:9222")
     return webdriver.Chrome(options=options)
 
+def encontrar_chrome():
+    candidatos = [
+        r"C:\Program Files\Google\Chrome\Application\chrome.exe",
+        r"C:\Program Files (x86)\Google\Chrome\Application\chrome.exe",
+        os.path.expandvars(r"%LOCALAPPDATA%\Google\Chrome\Application\chrome.exe"),
+        os.path.expandvars(r"%PROGRAMFILES%\Google\Chrome\Application\chrome.exe"),
+        os.path.expandvars(r"%PROGRAMFILES(X86)%\Google\Chrome\Application\chrome.exe"),
+    ]
+    for caminho in candidatos:
+        if os.path.exists(caminho):
+            return caminho
+    return None
+
 def abrir_chrome_debug():
-    caminho_chrome = r"C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe"
-    user_data_dir = os.path.expanduser(r"~\\AppData\\Local\\Google\\Chrome\\User Data")
+    caminho_chrome = encontrar_chrome()
+    if not caminho_chrome:
+        messagebox.showerror(
+            "Chrome não encontrado",
+            "Não foi possível encontrar o Google Chrome instalado neste computador.\n\n"
+            "Instale o Chrome e tente novamente."
+        )
+        return False
+
+    user_data_dir = os.path.expanduser(r"~\AppData\Local\Google\Chrome\User Data")
 
     comando = [
         caminho_chrome,
