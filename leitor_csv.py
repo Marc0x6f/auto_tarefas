@@ -2,15 +2,15 @@ import pandas as pd
 
 def ler_csv_sed(caminho):
     """
-    Lê e limpa um CSV exportado da SED, ignorando as duas primeiras linhas de metadados.
+    Lê um CSV exportado da SED com notas inteiras (coluna 'atividade').
     Verifica se as colunas obrigatórias estão presentes.
     """
     try:
-        df = pd.read_csv(caminho, sep=";", skiprows=2, encoding="utf-8")
+        df = pd.read_csv(caminho, sep=",", encoding="utf-8")
     except Exception as e:
         raise ValueError(f"Erro ao ler o CSV: {e}")
 
-    colunas_esperadas = ["Status", "Nome do Aluno"]
+    colunas_esperadas = ["Nome do Aluno", "atividade"]
     for col in colunas_esperadas:
         if col not in df.columns:
             raise ValueError(f"Coluna obrigatória '{col}' não encontrada no CSV.")
@@ -20,17 +20,11 @@ def ler_csv_sed(caminho):
 
 def converter_nota_para_escala_10(df):
     """
-    Converte a coluna 'Status' de porcentagem para nota de 0 a 10.
-    Cria a nova coluna 'Nota (%)' com nota em formato decimal.
+    Usa a coluna 'atividade' diretamente como nota (já em escala 0 a 10).
+    Remove alunos sem nota lançada.
     """
-    df["Nota (%)"] = (
-        df["Status"]
-        .astype(str)
-        .str.replace("%", "")
-        .str.replace(",", ".")
-        .astype(float)
-        / 10
-    )
+    df["Nota (%)"] = pd.to_numeric(df["atividade"], errors="coerce")
+    df = df.dropna(subset=["Nota (%)"])
     return df
 
 
