@@ -204,18 +204,30 @@ class App:
         threading.Thread(target=self.executar_processo).start()
 
     def executar_processo(self):
-        driver = iniciar_chrome_com_perfil()
         try:
-          WebDriverWait(driver, 2).until(
-              EC.presence_of_element_located((By.CSS_SELECTOR, "input.dt-input"))
-          )
-        except:
-          messagebox.showwarning(
-              "Página incorreta",
-              "Não encontramos o campo de busca.\n\n"
-              "Acesse a aba de lançamento de notas no Sala de Aula do Futuro e tente novamente."
-          )
-          return
+            self.log("🌐 Conectando ao navegador Chrome...")
+            driver = iniciar_chrome_com_perfil()
+        except Exception as e:
+            messagebox.showerror(
+                "Chrome não encontrado",
+                "Não foi possível conectar ao Chrome.\n\n"
+                "Use o botão 'Abrir Chrome (modo conectado)' antes de iniciar o lançamento."
+            )
+            self.log(f"❌ Erro ao conectar ao Chrome: {e}")
+            return
+
+        try:
+            WebDriverWait(driver, 2).until(
+                EC.presence_of_element_located((By.CSS_SELECTOR, "input.dt-input"))
+            )
+        except Exception:
+            messagebox.showwarning(
+                "Página incorreta",
+                "Não encontramos o campo de busca.\n\n"
+                "Acesse a aba de lançamento de notas no Sala de Aula do Futuro e tente novamente."
+            )
+            self.log("❌ Campo de busca não encontrado. Verifique a página aberta no Chrome.")
+            return
 
         try:
             self.log("🚀 Iniciando limpeza do CSV...")
@@ -229,8 +241,6 @@ class App:
             self.log("✅ CSV limpo gerado.")
 
             df_limpo = pd.read_csv(caminho_saida, sep=";")
-            self.log("🌐 Conectando ao navegador Chrome...")
-            driver = iniciar_chrome_com_perfil()
             self.log("🧠 Iniciando automação...")
             iniciar_lancamento(driver, df_limpo, self.log)
             self.log("✅ Fim do processo.")
